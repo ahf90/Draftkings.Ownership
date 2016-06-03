@@ -161,7 +161,7 @@ namespace Draftkings.Ownership.Controllers
                     if (ContestElement.attr.GetType().GetProperty("IsDoubleUp") != null || ContestElement.attr.GetType().GetProperty("IsFiftyfifty") != null)
                     //if (ContestElement.attr.IsDoubleUp == "true" || ContestElement.attr.IsFiftyfifty == "true")
                     {
-                        if (ContestElement.m > LargestMultiplier[0])
+                        if (ContestElement.m > LargestMultiplier[0] && ContestElement.a > 1)
                         {
                             if (ContestElement.m > LargestMultiplier[1])
                             {
@@ -176,7 +176,7 @@ namespace Draftkings.Ownership.Controllers
                     }
                     else
                     {
-                        if (ContestElement.m > LargestTournament[0])
+                        if (ContestElement.m > LargestTournament[0] && ContestElement.a > 1)
                         {
                             if (ContestElement.m > LargestTournament[1])
                             {

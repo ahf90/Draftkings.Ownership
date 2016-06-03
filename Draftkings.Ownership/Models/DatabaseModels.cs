@@ -90,6 +90,12 @@ namespace Draftkings.Ownership.Models
         public int PlayerId { get; set; }
         public int Salary { get; set; }
     }
+    public class LoginInfo
+    {
+        public string Username { get; set; }
+        public string Password { get; set; }
+        public DateTime Created { get; set; }
+    }
     public class FantasyContestsDBContextDk : DbContext
     {
         public DbSet<ContestGroup> ContestGroups { get; set; }
@@ -99,5 +105,6 @@ namespace Draftkings.Ownership.Models
         public DbSet<ContestPlayer> ContestPlayers { get; set; }
         public DbSet<DraftGroupPlayer> DraftGroupPlayers { get; set; }
         public DbSet<ContestScrapeStatus> ScrapeStatuses { get; set; }
+        public DbSet<LoginInfo> Logins { get; set; }
     }
 }
