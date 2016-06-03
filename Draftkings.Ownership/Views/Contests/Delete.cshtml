@@ -1,0 +1,120 @@
+﻿@model Draftkings.Ownership.Models.Contest
+
+@{
+    ViewBag.Title = "Delete";
+}
+
+<h2>Delete</h2>
+
+<h3>Are you sure you want to delete this?</h3>
+<div>
+    <h4>Contest</h4>
+    <hr />
+    <dl class="dl-horizontal">
+        <dt>
+            @Html.DisplayNameFor(model => model.ContestGroupId)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.ContestGroupId)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.DraftGroupId)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.DraftGroupId)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.ContestTitle)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.ContestTitle)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.ContestType)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.ContestType)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.EntryCount)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.EntryCount)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.MultiEntry)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.MultiEntry)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.ActiveFlag)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.ActiveFlag)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.Rake)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.Rake)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.EntryFee)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.EntryFee)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.Size)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.Size)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.UserCreated)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.UserCreated)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.IsOwnershipCollected)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.IsOwnershipCollected)
+        </dd>
+
+    </dl>
+
+    @using (Html.BeginForm()) {
+        @Html.AntiForgeryToken()
+
+        <div class="form-actions no-color">
+            <input type="submit" value="Delete" class="btn btn-default" /> |
+            @Html.ActionLink("Back to List", "Index")
+        </div>
+    }
+</div>

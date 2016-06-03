@@ -1,0 +1,106 @@
+﻿@model IEnumerable<Draftkings.Ownership.Models.Contest>
+
+
+@{
+    ViewBag.Title = "Contests";
+}
+
+<h2>Index</h2>
+
+<table class="table">
+    <tr>
+        <th>
+            @Html.DisplayNameFor(model => model.ContestId)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.ContestGroupId)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.DraftGroupId)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.ContestTitle)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.ContestType)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.EntryCount)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.MultiEntry)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.ActiveFlag)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.Rake)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.EntryFee)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.Size)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.UserCreated)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.IsOwnershipCollected)
+        </th>
+        <th></th>
+    </tr>
+
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.ContestId)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.ContestGroupId)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.DraftGroupId)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.ContestTitle)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.ContestType)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.EntryCount)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.MultiEntry)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.ActiveFlag)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Rake)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.EntryFee)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Size)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.UserCreated)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.IsOwnershipCollected)
+            </td>
+            <td>
+               
+                @Html.ActionLink("Entries", "Entries", new { id = item.ContestId }) |
+                @Html.ActionLink("Ownership", "Players", new { id = item.ContestId }) |
+                @Html.ActionLink("Send Entries", "Entry", "Manual", new { id = item.ContestId }, null) |
+                @Html.ActionLink("Send Ownership", "Manual", "Ownership", new { id = item.ContestId }, null) |
+            </td>
+        </tr>
+    }
+
+</table>

@@ -1,0 +1,75 @@
+﻿@model IEnumerable<Draftkings.Ownership.Models.ContestGroup>
+
+@{
+    ViewBag.Title = "Index";
+}
+
+<h2>Index</h2>
+
+<p>
+    @Html.ActionLink("Create New", "Create")
+</p>
+<table class="table">
+    <tr>
+        <th>
+            @Html.DisplayNameFor(model => model.SourceId)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.SportId)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.ContestGroupName)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.DraftGroupId)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.ContestStartDate)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.GameCount)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.ActiveFlag)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.ContestSortOrder)
+        </th>
+        <th></th>
+    </tr>
+
+@foreach (var item in Model) {
+    <tr>
+        <td>
+            @Html.DisplayFor(modelItem => item.SourceId)
+        </td>
+        <td>
+            @Html.DisplayFor(modelItem => item.SportId)
+        </td>
+        <td>
+            @Html.DisplayFor(modelItem => item.ContestGroupName)
+        </td>
+        <td>
+            @Html.DisplayFor(modelItem => item.DraftGroupId)
+        </td>
+        <td>
+            @Html.DisplayFor(modelItem => item.ContestStartDate)
+        </td>
+        <td>
+            @Html.DisplayFor(modelItem => item.GameCount)
+        </td>
+        <td>
+            @Html.DisplayFor(modelItem => item.ActiveFlag)
+        </td>
+        <td>
+            @Html.DisplayFor(modelItem => item.ContestSortOrder)
+        </td>
+        <td>
+            @Html.ActionLink("View Contests", "Index", "Contests", new { id = item.ContestGroupId }, null) |
+            @Html.ActionLink("Edit", "Edit", new { id = item.ContestGroupId }) |
+            @Html.ActionLink("Details", "Details", new { id = item.ContestGroupId })
+        </td>
+    </tr>
+}
+
+</table>
