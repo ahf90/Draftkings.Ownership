@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Collections.Generic;
 using System.Web.Mvc;
-using System.IO;
 using System.Net;
 using System.Threading;
 using Draftkings.Ownership.Models;
@@ -19,11 +18,19 @@ namespace Draftkings.Ownership.Controllers
     {
         private FantasyContestsDBContextDk Database = new FantasyContestsDBContextDk();
         private ScrapeController ContestScrapeControllerInstance = new ScrapeController();
-        private static readonly Dictionary<string, int> SportIdDict = new Dictionary<string, int>{{"NFL", 1},{"NBA", 2},{"MLB", 3},{"NHL", 4},{"PGA", 5},{"LOL", 6},{"SOC", 7},{"NAS", 8},{"MMA", 9}};
-        
+        private static readonly Dictionary<string, int> SportIdDict = new Dictionary<string, int> { { "NFL", 1 }, { "NBA", 2 }, { "MLB", 3 }, { "NHL", 4 }, { "PGA", 5 }, { "LOL", 6 }, { "SOC", 7 }, { "NAS", 8 }, { "MMA", 9 }, { "GOLF", 5 }, { "CFL", 10 } };
+
         public void Index()
         {
-            bool ContestGroupExists;
+            //Normal check to make sure hangfire tasks are not on pause
+            string HangfireStatus = System.Configuration.ConfigurationManager.AppSettings["HangfirePauseFlag"];
+            if (HangfireStatus == "true")
+            {
+                BackgroundJob.Schedule(
+                        () => Index(),
+                        TimeSpan.FromHours(1));
+                return;
+            }
 
             var LobbyClient = new RestClient("https://www.draftkings.com");
             var LobbyRequest = new RestRequest("lobby/getcontests", Method.GET);
@@ -37,6 +44,7 @@ namespace Draftkings.Ownership.Controllers
             LobbyRoot LobbyObject = JsonConvert.DeserializeObject<LobbyRoot>(LobbyOutput);
             foreach (ContestGroupJson ContestGroupElement in LobbyObject.DraftGroups)
             {
+                bool ContestGroupExists;
                 ContestGroupExists = Database.ContestGroups.Any(dg => dg.ContestGroupId == ContestGroupElement.DraftGroupId);
                 if (!ContestGroupExists)
                 {
@@ -46,7 +54,6 @@ namespace Draftkings.Ownership.Controllers
                     var SalaryRequest = new RestRequest("lineup/getavailableplayers?contestTypeId=28&draftGroupId=" + ContestGroupElement.DraftGroupId.ToString(), Method.GET);
                     IRestResponse SalaryResponse = LobbyClient.Execute(SalaryRequest);
 
-                    //If I get a 403, then exit
                     if (!CheckAccess(SalaryResponse.StatusCode)) { return; }
 
                     string SalaryOutput = SalaryResponse.Content;
@@ -68,6 +75,7 @@ namespace Draftkings.Ownership.Controllers
                     NewContestGroup.ContestGroupId = ContestGroupElement.DraftGroupId;
                     NewContestGroup.DraftGroupId = ContestGroupElement.DraftGroupId;
                     NewContestGroup.SourceId = 4;
+                    //Use the SportIdDict to convert DraftKings's string to FantasyLab's integer-based sport label system
                     NewContestGroup.SportId = SportIdDict[ContestGroupElement.Sport];
                     NewContestGroup.ContestGroupName = ContestGroupElement.ContestStartTimeSuffix;
                     NewContestGroup.GameCount = ContestGroupElement.GameCount;
@@ -77,15 +85,20 @@ namespace Draftkings.Ownership.Controllers
                     Database.ContestGroups.Add(NewContestGroup);
                     Database.SaveChanges();
 
-                    DateTime CurrentTime = DateTime.Now;
-                    DateTime ScrapeTime = CurrentTime.AddMinutes(-240);
+                    //All times are stored in UTC
+                    DateTime CurrentTime = DateTime.UtcNow;
+                    //Giving DK a 3 minute cushion before we send request
+                    //I was hitting a few "contest not started" errors if I sent immediately.
+                    CurrentTime.AddMinutes(-3);
+                    //Scrape for ownership three hours after the last game starts.
+                    DateTime ScrapeTime = NewContestGroup.LastGameStart.AddMinutes(-180);
 
                     TimeSpan SpanUntilStart = NewContestGroup.ContestStartDate.Subtract(CurrentTime);
                     TimeSpan SpanUntilEnd = NewContestGroup.LastGameStart.Subtract(CurrentTime);
                     TimeSpan SpanUntilScrape = NewContestGroup.LastGameStart.Subtract(ScrapeTime);
 
                     BackgroundJob.Enqueue(
-                        () => Contests(ContestGroupElement.DraftGroupId, ContestGroupElement.Sport, true));
+                        () => SelectContests(ContestGroupElement.DraftGroupId, ContestGroupElement.Sport, true));
                     BackgroundJob.Schedule(
                         () => ContestScrapeControllerInstance.ContestGroupFetchEntryIds(ContestGroupElement.DraftGroupId),
                         TimeSpan.FromMinutes(SpanUntilStart.TotalMinutes));
@@ -95,84 +108,78 @@ namespace Draftkings.Ownership.Controllers
                     BackgroundJob.Schedule(
                         () => ContestScrapeControllerInstance.GetOwnership(ContestGroupElement.DraftGroupId),
                         TimeSpan.FromMinutes(SpanUntilScrape.TotalMinutes));
-                } else
+                }
+                else
                 {
                     BackgroundJob.Enqueue(
-                       () => Contests(ContestGroupElement.DraftGroupId, ContestGroupElement.Sport, false));
-
-                    //ContestGroup CurrentContestGroup = Database.ContestGroups.Find(ContestGroupElement.DraftGroupId);
-
-                    //DateTime CurrentTime = DateTime.Now;
-                    //DateTime ScrapeTime = CurrentTime.AddMinutes(-250);
-
-                    //TimeSpan SpanUntilStart = CurrentContestGroup.ContestStartDate.Subtract(CurrentTime);
-                    //TimeSpan SpanUntilEnd = CurrentContestGroup.LastGameStart.Subtract(CurrentTime);
-                    //TimeSpan SpanUntilScrape = CurrentContestGroup.LastGameStart.Subtract(ScrapeTime);
-
-
-                    //BackgroundJob.Schedule(
-                    //    () => ContestScrapeControllerInstance.ContestGroupFetchEntryIds(ContestGroupElement.DraftGroupId),
-                    //    TimeSpan.FromMinutes(SpanUntilStart.TotalMinutes));
-                    //BackgroundJob.Schedule(
-                    //    () => ContestScrapeControllerInstance.ContestGroupFetchEntryIds(ContestGroupElement.DraftGroupId),
-                    //    TimeSpan.FromMinutes(SpanUntilEnd.TotalMinutes));
-                    //BackgroundJob.Schedule(
-                    //    () => ContestScrapeControllerInstance.GetOwnership(ContestGroupElement.DraftGroupId),
-                    //    TimeSpan.FromMinutes(SpanUntilScrape.TotalMinutes));
+                       () => SelectContests(ContestGroupElement.DraftGroupId, ContestGroupElement.Sport, false));
                 }
-
             }
         }
         [Queue("contestload")]
-        public void Contests(int DraftGroupId, string SportAbbr, bool FirstRun)
+        public void SelectContests(int DraftGroupId, string SportAbbr, bool FirstRun)
         {
-            bool ContestExists;
-
+            //these arrays will hold the ContestIds of the contests we end up scraping.
             int[] LargestTournament = new int[2] { 0, 0 };
             int[] LargestMultiplier = new int[2] { 0, 0 };
             int[] SelectedTournaments = new int[4] { 0, 0, 0, 0 };
-           
-            //DateTime CurrentTime = DateTime.Now;
-            //ContestStartDate.AddMinutes(2);
-            //LastGameStart.AddMinutes(5);
-            //DateTime ScrapeTime = LastGameStart.AddMinutes(30);
 
-            //TimeSpan SpanUntilStart = ContestStartDate.Subtract(CurrentTime);
-            //TimeSpan SpanUntilEnd = LastGameStart.Subtract(CurrentTime);
-            //TimeSpan SpanUntilScrape = ScrapeTime.Subtract(CurrentTime);
-
-            Thread.Sleep(3000);  
+            Thread.Sleep(3000);
 
             var LobbyClient = new RestClient("https://www.draftkings.com");
             var LobbyRequest = new RestRequest("lobby/getcontests?sport=" + SportAbbr, Method.GET);
             LobbyRequest.AddHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2486.0 Safari/537.36 Edge/13.10586");
             IRestResponse LobbyResponse = LobbyClient.Execute(LobbyRequest);
 
-            //If I get a 403, then exit
             if (!CheckAccess(LobbyResponse.StatusCode)) { return; }
 
             string LobbyOutput = LobbyResponse.Content;
             LobbyRoot LobbyObject = JsonConvert.DeserializeObject<LobbyRoot>(LobbyOutput);
-
+            				
             foreach (ContestJson ContestElement in LobbyObject.Contests)
             {
                 if (ContestElement.dg == DraftGroupId)
                 {
-                    if (ContestElement.attr.GetType().GetProperty("IsDoubleUp") != null || ContestElement.attr.GetType().GetProperty("IsFiftyfifty") != null)
-                    //if (ContestElement.attr.IsDoubleUp == "true" || ContestElement.attr.IsFiftyfifty == "true")
+					//The "IsDoubleUp" attribute is never set to false.  If the contest is not a double up, then the attribute does not exist. If it exists, then it's true. Same idea with 50/50s.
+					//This is why we cannot do:
+					//if (ContestElement.attr.IsDoubleUp == "true" || ContestElement.attr.IsFiftyfifty == "true")
+					//Instead, we check to see whether the attribute exists
+					if (ContestElement.attr.GetType().GetProperty("IsDoubleUp") != null)
                     {
-                        if (ContestElement.m > LargestMultiplier[0] && ContestElement.a > 1)
-                        {
-                            if (ContestElement.m > LargestMultiplier[1])
-                            {
-                                LargestMultiplier[1] = ContestElement.m;
-                                SelectedTournaments[0] = ContestElement.id;
-                            } else
-                            {
-                                LargestMultiplier[0] = ContestElement.m;
-                                SelectedTournaments[1] = ContestElement.id;
-                            }
-                        }
+						//then, just to be sure, make sure it is set to true
+						if (ContestElement.attr.IsDoubleUp == "true")
+						{
+							if (ContestElement.m > LargestMultiplier[0] && ContestElement.a > 1)
+							{
+								if (ContestElement.m > LargestMultiplier[1])
+								{
+									LargestMultiplier[1] = ContestElement.m;
+									SelectedTournaments[0] = ContestElement.id;
+								} else
+								{
+									LargestMultiplier[0] = ContestElement.m;
+									SelectedTournaments[1] = ContestElement.id;
+								}
+							}
+						}
+                    }
+                    if (ContestElement.attr.GetType().GetProperty("IsFiftyfifty") != null)
+                    {
+                        if (ContestElement.attr.IsFiftyfifty == "true")
+						{
+							if (ContestElement.m > LargestMultiplier[0] && ContestElement.a > 1)
+							{
+								if (ContestElement.m > LargestMultiplier[1])
+								{
+									LargestMultiplier[1] = ContestElement.m;
+									SelectedTournaments[0] = ContestElement.id;
+								} else
+								{
+									LargestMultiplier[0] = ContestElement.m;
+									SelectedTournaments[1] = ContestElement.id;
+								}
+							}
+						}
                     }
                     else
                     {
@@ -190,6 +197,8 @@ namespace Draftkings.Ownership.Controllers
                             }
                         }
                     }
+					
+					bool ContestExists;
                     ContestExists = Database.Contests.Any(cont => cont.ContestId == ContestElement.id);
                     if (ContestExists == false && ContestElement.attr.IsGuaranteed == "true")
                     {
@@ -203,19 +212,6 @@ namespace Draftkings.Ownership.Controllers
                         NewContest.EntryFee = ContestElement.a;
                         Database.Contests.Add(NewContest);
                         Database.SaveChanges();
-                        //BackgroundJob.Enqueue(() => CreateContestPlayers(ContestElement.dg, ContestElement.id));
-                        //if (ContestElement.m > 1000)
-                        //{
-                        //    BackgroundJob.Schedule(
-                        //        () => ContestScrapeControllerInstance.FetchEntryIds(ContestElement.id),
-                        //        TimeSpan.FromMinutes(SpanUntilStart.TotalMinutes));
-                        //}
-                        //BackgroundJob.Schedule(
-                        //    () => ContestScrapeControllerInstance.FetchEntryIds(ContestElement.id),
-                        //    TimeSpan.FromMinutes(SpanUntilEnd.TotalMinutes));
-                        //BackgroundJob.Schedule(
-                        //    () => ContestScrapeControllerInstance.GetOwnership(ContestElement.id),
-                        //    TimeSpan.FromMinutes(SpanUntilScrape.TotalMinutes));
                     }
                 }
             }
@@ -238,11 +234,8 @@ namespace Draftkings.Ownership.Controllers
                 }
             }
 
-            //Wait 10 seconds to send next job
-            //To avoid DK detection/IP banning
             Thread.Sleep(10000);
         }
-        
         [Queue("playercreate")]
         public void CreateContestPlayers(int ContestId)
         {
@@ -267,7 +260,8 @@ namespace Draftkings.Ownership.Controllers
                     newPlayer.ContestId = ContestId;
                     Database.ContestPlayers.Add(newPlayer);
                     Database.SaveChanges();
-                } else
+                }
+                else
                 {
                     Debug.WriteLine("Already exists");
                     return;
@@ -324,37 +318,9 @@ namespace Draftkings.Ownership.Controllers
                     FirstGame = FixtureElement.Value.GameStart;
                 }
             }
+
             return FirstGame;
 
-        }
-        public void CreateLogin(string id)
-        {
-            var client = new RestClient("https://www.draftkings.com");
-
-            var loginRequest = new RestRequest("/account/sitelogin/true ", Method.POST);
-            loginRequest.AddParameter("ExistingUserRadio", "false");
-            loginRequest.AddParameter("ShowCaptcha", "False");
-            loginRequest.AddParameter("RecaptchaResponse", "");
-            loginRequest.AddParameter("LocaleId", 1);
-            loginRequest.AddParameter("Username", id);
-            loginRequest.AddParameter("Password", id);
-            loginRequest.AddParameter("Email", id + "@gmail.com");
-            loginRequest.AddParameter("RegPassword", id);
-            loginRequest.AddParameter("ConfirmPassword", id);
-            loginRequest.AddParameter("CountryId", 1);
-            loginRequest.AddParameter("State", "MA");
-            loginRequest.AddParameter("DobMonth", 03);
-            loginRequest.AddParameter("DobDay", 14);
-            loginRequest.AddParameter("DobYear", 1992);
-            loginRequest.AddParameter("AgreeTermsCondsPriv", "true");
-            loginRequest.AddParameter("AgreeTermsCondsPriv", "false");
-            loginRequest.AddParameter("Agree18AgeMin", "true");
-            loginRequest.AddParameter("Agree18AgeMin", "false");
-            loginRequest.AddParameter("RegisterForEmails", "true");
-            loginRequest.AddParameter("RegisterForEmails", "false");
-
-            loginRequest.AddHeader("content-type", "application/x-www-form-urlencoded");
-            IRestResponse response = client.Execute(loginRequest);
         }
         public bool CheckAccess(HttpStatusCode StatusCode)
         {
@@ -365,16 +331,17 @@ namespace Draftkings.Ownership.Controllers
                 MailMessage mail = new MailMessage();
                 SmtpClient SmtpServer = new SmtpClient("smtp.gmail.com");
 
-                mail.From = new MailAddress("fdo.errors.fl@gmail.com");
+                mail.From = new MailAddress("dko.errors.fl@gmail.com");
                 mail.To.Add("ahfriedman09@gmail.com");
                 mail.Subject = "403 Error Access Denied";
                 mail.Body = "403 Error Access Denied at " + DateTime.Now.ToString();
 
                 SmtpServer.Port = 587;
-                SmtpServer.Credentials = new System.Net.NetworkCredential("fdo.errors.fl", "trycatchemail");
+                SmtpServer.Credentials = new System.Net.NetworkCredential("dko.errors.fl", "4ownershipWoes");
                 SmtpServer.EnableSsl = true;
 
                 SmtpServer.Send(mail);
+                DisposeHangfire();
                 return false;
             }
             else
@@ -388,6 +355,10 @@ namespace Draftkings.Ownership.Controllers
                 () => Index(),
                 "0 5,11,16,20 * * *");
             //Send CRON job to scrape lobby for contests at 5am, 11am, 4pm, and 8pm
+        }
+        public void DisposeHangfire()
+        {
+            System.Configuration.ConfigurationManager.AppSettings["HangfirePauseFlag"] = "true"; ;
         }
     }
 }

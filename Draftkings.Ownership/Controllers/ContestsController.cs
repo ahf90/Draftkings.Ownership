@@ -23,6 +23,7 @@ namespace Draftkings.Ownership.Controllers
             }
             var ContestsQuery = from Contest in db.Contests
                                 where Contest.ContestGroupId == id
+                                orderby Contest.Size descending
                                 select Contest;
             if (ContestsQuery == null)
             {

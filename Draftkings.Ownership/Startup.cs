@@ -11,6 +11,7 @@ namespace Draftkings.Ownership
     {
         public void Configuration(IAppBuilder app)
         {
+
             GlobalConfiguration.Configuration.UseSqlServerStorage(
                 "HangfireDb",
                 new SqlServerStorageOptions { QueuePollInterval = TimeSpan.FromSeconds(1) });

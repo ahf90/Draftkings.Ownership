@@ -92,12 +92,23 @@ namespace Draftkings.Ownership.Models
     }
     public class LoginInfo
     {
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public Guid Id { get; set; }
         public string Username { get; set; }
         public string Password { get; set; }
         public DateTime Created { get; set; }
     }
     public class FantasyContestsDBContextDk : DbContext
     {
+        protected override void OnModelCreating(DbModelBuilder modelBuilder)
+        {
+            // other code 
+            Database.SetInitializer<FantasyContestsDBContextDk>(null);
+            // more code
+        }
+        //public FantasyContestsDBContextDk()
+        //    : base("FantasyContestsDBContextDk")
+        //{ }
         public DbSet<ContestGroup> ContestGroups { get; set; }
         public DbSet<Contest> Contests { get; set; }
         public DbSet<Prizes> Prize { get; set; }
