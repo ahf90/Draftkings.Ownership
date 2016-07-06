@@ -27,5 +27,6 @@ namespace Draftkings.Ownership.Controllers
         {
             System.Configuration.ConfigurationManager.AppSettings["HangfirePauseFlag"] = "false";
         }
+
     }
 }

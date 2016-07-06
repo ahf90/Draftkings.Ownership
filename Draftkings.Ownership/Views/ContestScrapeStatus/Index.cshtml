@@ -1,0 +1,62 @@
+﻿@model IEnumerable<Draftkings.Ownership.Models.ContestScrapeStatus>
+
+@{
+    ViewBag.Title = "Selected Contests to Scrape";
+}
+
+<h2>View</h2>
+
+<p>
+    @Html.ActionLink("Create New", "Create")
+</p>
+<table class="table">
+    <tr>
+        <th>
+            Contest Link
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.ContestId)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.ContestGroupId)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.InitialEntryIdScrape)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.FinalEntryIdScrape)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.IsOwnershipCollected)
+        </th>
+        <th></th>
+    </tr>
+
+@foreach (var item in Model) {
+    <tr>
+        <td>
+            @Html.ActionLink("Link", "Details", "Contests", new { id=item.ContestId }, null) 
+        </td>
+        <td>
+            @Html.DisplayFor(modelItem => item.ContestId)
+        </td>
+        <td>
+            @Html.DisplayFor(modelItem => item.ContestGroupId)
+        </td>
+        <td>
+            @Html.DisplayFor(modelItem => item.InitialEntryIdScrape)
+        </td>
+        <td>
+            @Html.DisplayFor(modelItem => item.FinalEntryIdScrape)
+        </td>
+        <td>
+            @Html.DisplayFor(modelItem => item.IsOwnershipCollected)
+        </td>
+        <td>
+            @Html.ActionLink("Edit", "Edit", new { id=item.ContestId }) |
+            @Html.ActionLink("Delete", "Delete", new { id=item.ContestId })
+        </td>
+    </tr>
+}
+
+</table>

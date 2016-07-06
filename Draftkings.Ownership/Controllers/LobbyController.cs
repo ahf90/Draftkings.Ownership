@@ -124,6 +124,8 @@ namespace Draftkings.Ownership.Controllers
             int[] LargestMultiplier = new int[2] { 0, 0 };
             int[] SelectedTournaments = new int[4] { 0, 0, 0, 0 };
 
+            bool NotTournament = false;
+
             Thread.Sleep(3000);
 
             var LobbyClient = new RestClient("https://www.draftkings.com");
@@ -140,15 +142,17 @@ namespace Draftkings.Ownership.Controllers
             {
                 if (ContestElement.dg == DraftGroupId)
                 {
-					//The "IsDoubleUp" attribute is never set to false.  If the contest is not a double up, then the attribute does not exist. If it exists, then it's true. Same idea with 50/50s.
-					//This is why we cannot do:
-					//if (ContestElement.attr.IsDoubleUp == "true" || ContestElement.attr.IsFiftyfifty == "true")
-					//Instead, we check to see whether the attribute exists
-					if (ContestElement.attr.GetType().GetProperty("IsDoubleUp") != null)
+                    NotTournament = false;
+                    //The "IsDoubleUp" attribute is never set to false.  If the contest is not a double up, then the attribute does not exist. If it exists, then it's true. Same idea with 50/50s.
+                    //This is why we cannot do:
+                    //if (ContestElement.attr.IsDoubleUp == "true" || ContestElement.attr.IsFiftyfifty == "true")
+                    //Instead, we check to see whether the attribute exists
+                    if (ContestElement.attr.GetType().GetProperty("IsDoubleUp") != null)
                     {
 						//then, just to be sure, make sure it is set to true
 						if (ContestElement.attr.IsDoubleUp == "true")
 						{
+                            NotTournament = true;
 							if (ContestElement.m > LargestMultiplier[0] && ContestElement.a > 1)
 							{
 								if (ContestElement.m > LargestMultiplier[1])
@@ -163,11 +167,12 @@ namespace Draftkings.Ownership.Controllers
 							}
 						}
                     }
-                    if (ContestElement.attr.GetType().GetProperty("IsFiftyfifty") != null)
+                    else if (ContestElement.attr.GetType().GetProperty("IsFiftyfifty") != null)
                     {
                         if (ContestElement.attr.IsFiftyfifty == "true")
 						{
-							if (ContestElement.m > LargestMultiplier[0] && ContestElement.a > 1)
+                            NotTournament = true;
+                            if (ContestElement.m > LargestMultiplier[0] && ContestElement.a > 1)
 							{
 								if (ContestElement.m > LargestMultiplier[1])
 								{
@@ -181,7 +186,7 @@ namespace Draftkings.Ownership.Controllers
 							}
 						}
                     }
-                    else
+                    if (NotTournament == false)
                     {
                         if (ContestElement.m > LargestTournament[0] && ContestElement.a > 1)
                         {
@@ -215,8 +220,25 @@ namespace Draftkings.Ownership.Controllers
                     }
                 }
             }
+
+           
+            
+
             if (FirstRun)
             {
+                // Check to make sure we've selected 4 contests
+                // This check is necessary because DK will often put out one big contest way ahead of time, but no others
+                // We must wait until all contests are out to declare this a "FirstRun"
+                foreach (int SelectedContest in SelectedTournaments)
+                {
+                    if (SelectedContest == 0)
+                    {
+                        FirstRun = false;
+                        Thread.Sleep(10000);
+                        return;
+                    }
+                }
+
                 foreach (ContestJson ContestElement in LobbyObject.Contests)
                 {
                     if (Array.IndexOf(SelectedTournaments, ContestElement.id) != -1)

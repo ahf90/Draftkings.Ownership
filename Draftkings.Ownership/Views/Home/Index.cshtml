@@ -1,7 +1,10 @@
 ﻿@{
     ViewBag.Title = "DraftKings Ownership";
 }
-
+<h4>
+    @ViewBag.Message
+    @Html.ActionLink("Click here to Start/Stop", (string)ViewBag.Link, "Manual") 
+</h4>
 <head>
     <script type="text/javascript">
 

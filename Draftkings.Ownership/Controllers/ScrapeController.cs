@@ -136,7 +136,7 @@ namespace Draftkings.Ownership.Controllers
             {
                 //If we get a 403, then we need to reproxy.  
                 //Sends an email and reschedules task for later.
-                SendMail("403 Error", "403 Error encountered while trying to scrape gamecenter for " + ContestId.ToString() + ". Task rescheduled for 1 day from now.");
+                SendMail("403 Error", "403 Error encountered while trying to scrape gamecenter for " + ContestId.ToString() + ". Task rescheduled to 1 day from now.");
 
                 BackgroundJob.Schedule(
                         () => FetchSingular(ContestId),
@@ -148,7 +148,7 @@ namespace Draftkings.Ownership.Controllers
             if (ContestResponse.ResponseUri.AbsolutePath == "/lobby")
             {
                 //If we are sent to the lobby, then the contest did not run.
-                SendMail("Contest: " + ContestId.ToString() + ", ContestGroup: " + CurrentContest.ContestGroupId.ToString() + " lobby redirect",
+                SendMail("Contest: " + ContestId.ToString() + ", ContestGroup: " + CurrentContest.ContestGroupId.ToString() + " lobby redirect failure",
                     "Task failed. Attempt to scrape gamecenter redirected to lobby.");
                 return;
             }
@@ -167,7 +167,7 @@ namespace Draftkings.Ownership.Controllers
 
                 if (ErrorCount > 5)
                 {
-                    SendMail("FetchContestEntryIds for " + ContestId.ToString() + " failed to get a 200", "Task rescheduled for 1 day from now");
+                    SendMail("FetchContestEntryIds for " + ContestId.ToString() + " failed to get a 200", "Task rescheduled to 1 day from now");
                     BackgroundJob.Schedule(
                         () => FetchSingular(ContestId),
                         TimeSpan.FromDays(1));
@@ -381,7 +381,7 @@ namespace Draftkings.Ownership.Controllers
             {
                 //If we get a 403, then we need to reproxy.  
                 //Sends an email and reschedules task for later.
-                SendMail("403 Error", "403 Error encountered while trying to scrape ownership for " + ContestId.ToString() + ". Task rescheduled for 1 day from now.");
+                SendMail("403 Error", "403 Error encountered while trying to scrape ownership for " + ContestId.ToString() + ". Task rescheduled to 1 day from now.");
 
                 BackgroundJob.Schedule(
                         () => GetContestOwnership(ContestId),
@@ -404,7 +404,7 @@ namespace Draftkings.Ownership.Controllers
 
                 if (ErrorCount > 5)
                 {
-                    SendMail("FetchOwnership for " + ContestId.ToString() + " failed to get a 200", "Task rescheduled for 1 day from now");
+                    SendMail("FetchOwnership for " + ContestId.ToString() + " failed to get a 200", "Task rescheduled to 1 day from now");
                     BackgroundJob.Schedule(
                         () => GetContestOwnership(ContestId),
                         TimeSpan.FromDays(1));
@@ -436,7 +436,7 @@ namespace Draftkings.Ownership.Controllers
 
             if (NumericStatusCode == 403)
             {
-                SendMail("403 Error", "Tasks put on hold");
+                SendMail("403 Error", "Tasks put on hold.");
                 DisposeHangfire();
                 LoginResponse.ErrorMessage = "403";
                 return LoginResponse;
@@ -460,7 +460,7 @@ namespace Draftkings.Ownership.Controllers
                                           where e.Username == LoginInfo
                                           select e).SingleOrDefault();
 
-                SendMail("Captcha required", "Tasks put on hold");
+                SendMail("Captcha required", "Tasks put on hold.");
                 DisposeHangfire();
                 LoginResponse.ErrorMessage = "Captcha";
             }

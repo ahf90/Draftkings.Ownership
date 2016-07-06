@@ -10,6 +10,17 @@ namespace Draftkings.Ownership.Controllers
     {
         public ActionResult Index()
         {
+            string HangfireStatus = System.Configuration.ConfigurationManager.AppSettings["HangfirePauseFlag"];
+            if (HangfireStatus == "true")
+            {
+                ViewBag.Message = "Tasks currently paused.";
+                ViewBag.Link = "Start";
+            } else
+            {
+                ViewBag.Message = "Tasks currently running.";
+                ViewBag.Link = "Stop";
+            }
+            
             return View();
         }
 

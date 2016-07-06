@@ -181,6 +181,7 @@
     <Compile Include="App_Start\Startup.Auth.cs" />
     <Compile Include="Controllers\ContestGroupsController.cs" />
     <Compile Include="Controllers\ContestsController.cs" />
+    <Compile Include="Controllers\ContestScrapeStatusController.cs" />
     <Compile Include="Controllers\CreateController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\LobbyController.cs" />
@@ -260,6 +261,9 @@
     <Content Include="Views\Contests\Entries.cshtml" />
     <Content Include="Views\Contests\Index.cshtml" />
     <Content Include="Views\Contests\Players.cshtml" />
+    <Content Include="Views\ContestScrapeStatus\Index.cshtml" />
+    <Content Include="Views\ContestScrapeStatus\Create.cshtml" />
+    <Content Include="Views\ContestScrapeStatus\Edit.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

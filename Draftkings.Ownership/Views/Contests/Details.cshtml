@@ -8,6 +8,11 @@
 
 <div>
     <h4>Contest</h4>
+    @Html.ActionLink("Entries", "Entries", new { id = Model.ContestId}) |
+    @Html.ActionLink("Ownership", "Players", new { id = Model.ContestId }) |
+    @Html.ActionLink("Send Entries", "Entry", "Manual", new { id = Model.ContestId }, null) |
+    @Html.ActionLink("Send Ownership", "Ownership", "Manual", new { id = Model.ContestId }, null) 
+   
     <hr />
     <dl class="dl-horizontal">
         <dt>

@@ -71,7 +71,8 @@
             @Html.DisplayFor(modelItem => item.ContestSortOrder)
         </td>
         <td>
-            @Html.ActionLink("View Contests", "Index", "Contests", new { id = item.ContestGroupId }, null) |
+            @Html.ActionLink("View  All Contests", "Index", "Contests", new { id = item.ContestGroupId }, null) |
+            @Html.ActionLink("View Scraped Contests", "Index", "ContestScrapeStatus", new { id = item.ContestGroupId }, null) |
             @Html.ActionLink("Edit", "Edit", new { id = item.ContestGroupId }) |
             @Html.ActionLink("Details", "Details", new { id = item.ContestGroupId })
         </td>
