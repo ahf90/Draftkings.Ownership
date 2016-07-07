@@ -34,8 +34,6 @@ namespace Draftkings.Ownership.Controllers
                                where e.ContestGroupId == ContestGroupId && e.FinalEntryIdScrape == false
                                select e.ContestId).ToList();
 
-            Debug.WriteLine(ContestList.ToString());
-
             var DkClient = new RestClient("https://www.draftkings.com");
             IRestResponse LoginResponse = Login(DkClient);
 

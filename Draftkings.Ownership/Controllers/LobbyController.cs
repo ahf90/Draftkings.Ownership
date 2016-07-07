@@ -140,69 +140,74 @@ namespace Draftkings.Ownership.Controllers
             				
             foreach (ContestJson ContestElement in LobbyObject.Contests)
             {
-                if (ContestElement.dg == DraftGroupId)
+                if(FirstRun)
                 {
-                    NotTournament = false;
-                    //The "IsDoubleUp" attribute is never set to false.  If the contest is not a double up, then the attribute does not exist. If it exists, then it's true. Same idea with 50/50s.
-                    //This is why we cannot do:
-                    //if (ContestElement.attr.IsDoubleUp == "true" || ContestElement.attr.IsFiftyfifty == "true")
-                    //Instead, we check to see whether the attribute exists
-                    if (ContestElement.attr.GetType().GetProperty("IsDoubleUp") != null)
+                    if (ContestElement.dg == DraftGroupId)
                     {
-						//then, just to be sure, make sure it is set to true
-						if (ContestElement.attr.IsDoubleUp == "true")
-						{
-                            NotTournament = true;
-							if (ContestElement.m > LargestMultiplier[0] && ContestElement.a > 1)
-							{
-								if (ContestElement.m > LargestMultiplier[1])
-								{
-									LargestMultiplier[1] = ContestElement.m;
-									SelectedTournaments[0] = ContestElement.id;
-								} else
-								{
-									LargestMultiplier[0] = ContestElement.m;
-									SelectedTournaments[1] = ContestElement.id;
-								}
-							}
-						}
-                    }
-                    else if (ContestElement.attr.GetType().GetProperty("IsFiftyfifty") != null)
-                    {
-                        if (ContestElement.attr.IsFiftyfifty == "true")
-						{
-                            NotTournament = true;
-                            if (ContestElement.m > LargestMultiplier[0] && ContestElement.a > 1)
-							{
-								if (ContestElement.m > LargestMultiplier[1])
-								{
-									LargestMultiplier[1] = ContestElement.m;
-									SelectedTournaments[0] = ContestElement.id;
-								} else
-								{
-									LargestMultiplier[0] = ContestElement.m;
-									SelectedTournaments[1] = ContestElement.id;
-								}
-							}
-						}
-                    }
-                    if (NotTournament == false)
-                    {
-                        if (ContestElement.m > LargestTournament[0] && ContestElement.a > 1)
+                        NotTournament = false;
+                        //The "IsDoubleUp" attribute is never set to false.  If the contest is not a double up, then the attribute does not exist. If it exists, then it's true. Same idea with 50/50s.
+                        //This is why we cannot do:
+                        //if (ContestElement.attr.IsDoubleUp == "true" || ContestElement.attr.IsFiftyfifty == "true")
+                        //Instead, we check to see whether the attribute exists
+                        if (ContestElement.attr.GetType().GetProperty("IsDoubleUp") != null)
                         {
-                            if (ContestElement.m > LargestTournament[1])
+                            //then, just to be sure, make sure it is set to true
+                            if (ContestElement.attr.IsDoubleUp == "true")
                             {
-                                LargestTournament[1] = ContestElement.m;
-                                SelectedTournaments[2] = ContestElement.id;
+                                NotTournament = true;
+                                if (ContestElement.m > LargestMultiplier[0] && ContestElement.a > 1)
+                                {
+                                    if (ContestElement.m > LargestMultiplier[1])
+                                    {
+                                        LargestMultiplier[1] = ContestElement.m;
+                                        SelectedTournaments[0] = ContestElement.id;
+                                    }
+                                    else
+                                    {
+                                        LargestMultiplier[0] = ContestElement.m;
+                                        SelectedTournaments[1] = ContestElement.id;
+                                    }
+                                }
                             }
-                            else
+                        }
+                        else if (ContestElement.attr.GetType().GetProperty("IsFiftyfifty") != null)
+                        {
+                            if (ContestElement.attr.IsFiftyfifty == "true")
                             {
-                                LargestTournament[0] = ContestElement.m;
-                                SelectedTournaments[3] = ContestElement.id;
+                                NotTournament = true;
+                                if (ContestElement.m > LargestMultiplier[0] && ContestElement.a > 1)
+                                {
+                                    if (ContestElement.m > LargestMultiplier[1])
+                                    {
+                                        LargestMultiplier[1] = ContestElement.m;
+                                        SelectedTournaments[0] = ContestElement.id;
+                                    }
+                                    else
+                                    {
+                                        LargestMultiplier[0] = ContestElement.m;
+                                        SelectedTournaments[1] = ContestElement.id;
+                                    }
+                                }
+                            }
+                        }
+                        if (NotTournament == false)
+                        {
+                            if (ContestElement.m > LargestTournament[0] && ContestElement.a > 1)
+                            {
+                                if (ContestElement.m > LargestTournament[1])
+                                {
+                                    LargestTournament[1] = ContestElement.m;
+                                    SelectedTournaments[2] = ContestElement.id;
+                                }
+                                else
+                                {
+                                    LargestTournament[0] = ContestElement.m;
+                                    SelectedTournaments[3] = ContestElement.id;
+                                }
                             }
                         }
                     }
-					
+
 					bool ContestExists;
                     ContestExists = Database.Contests.Any(cont => cont.ContestId == ContestElement.id);
                     if (ContestExists == false && ContestElement.attr.IsGuaranteed == "true")
@@ -220,9 +225,6 @@ namespace Draftkings.Ownership.Controllers
                     }
                 }
             }
-
-           
-            
 
             if (FirstRun)
             {
