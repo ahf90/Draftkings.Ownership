@@ -100,15 +100,14 @@ namespace Draftkings.Ownership.Models
     }
     public class FantasyContestsDBContextDk : DbContext
     {
+        //EXCLUDE THIS WHEN PUTTING INTO PRODUCTION
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
             // other code 
             Database.SetInitializer<FantasyContestsDBContextDk>(null);
             // more code
         }
-        //public FantasyContestsDBContextDk()
-        //    : base("FantasyContestsDBContextDk")
-        //{ }
+
         public DbSet<ContestGroup> ContestGroups { get; set; }
         public DbSet<Contest> Contests { get; set; }
         public DbSet<Prizes> Prize { get; set; }
