@@ -20,12 +20,12 @@ namespace Draftkings.Ownership.Controllers
         }
         public void Stop()
         {
-            
-            System.Configuration.ConfigurationManager.AppSettings["HangfirePauseFlag"] = "true";
+            System.Configuration.ConfigurationManager.AppSettings["CaptchaFlag"] = "true";
         }
         public void Start()
         {
-            System.Configuration.ConfigurationManager.AppSettings["HangfirePauseFlag"] = "false";
+            System.Configuration.ConfigurationManager.AppSettings["CaptchaFlag"] = "false";
+            System.Configuration.ConfigurationManager.AppSettings["AccessDeniedFlag"] = "false";
         }
 
     }

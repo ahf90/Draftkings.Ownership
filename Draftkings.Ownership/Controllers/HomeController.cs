@@ -1,26 +1,34 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-using System.Web.Mvc;
+﻿using System.Web.Mvc;
 
 namespace Draftkings.Ownership.Controllers
 {
     public class HomeController : Controller
     {
+
         public ActionResult Index()
         {
-            string HangfireStatus = System.Configuration.ConfigurationManager.AppSettings["HangfirePauseFlag"];
-            if (HangfireStatus == "true")
+            string CaptchaFlag = System.Configuration.ConfigurationManager.AppSettings["CaptchaFlag"];
+            string AccessDeniedFlag = System.Configuration.ConfigurationManager.AppSettings["AccessDeniedFlag"];
+            if (CaptchaFlag == "true" && AccessDeniedFlag == "true")
             {
-                ViewBag.Message = "Tasks currently paused.";
+                ViewBag.Message = "Tasks currently paused because of 403 & CAPTCHA errors.";
                 ViewBag.Link = "Start";
-            } else
+            } else if (CaptchaFlag == "true" && AccessDeniedFlag == "false")
+            {
+                ViewBag.Message = "Tasks currently paused because of CAPTCHA errors.";
+                ViewBag.Link = "Start";
+            }
+            else if (CaptchaFlag == "false" && AccessDeniedFlag == "true")
+            {
+                ViewBag.Message = "Tasks currently paused because of 403 errors.";
+                ViewBag.Link = "Start";
+            }
+            else
             {
                 ViewBag.Message = "Tasks currently running.";
                 ViewBag.Link = "Stop";
             }
-            
+
             return View();
         }
 

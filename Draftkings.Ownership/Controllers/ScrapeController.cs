@@ -11,6 +11,7 @@ using System.Diagnostics;
 using Hangfire;
 using System.Net;
 using System.Net.Mail;
+using System.Collections;
 
 namespace Draftkings.Ownership.Controllers
 {
@@ -22,14 +23,23 @@ namespace Draftkings.Ownership.Controllers
         [Queue("entryids")]
         public void ContestGroupFetchEntryIds(int ContestGroupId)
         {
-            string HangfireStatus = System.Configuration.ConfigurationManager.AppSettings["HangfirePauseFlag"];
-            if (HangfireStatus == "true")
+            string AccessDeniedFlag = System.Configuration.ConfigurationManager.AppSettings["AccessDeniedFlag"];
+            if (AccessDeniedFlag == "true")
             {
                 BackgroundJob.Schedule(
                         () => ContestGroupFetchEntryIds(ContestGroupId),
                         TimeSpan.FromDays(1));
                 return;
             }
+            string CaptchaFlag = System.Configuration.ConfigurationManager.AppSettings["CaptchaFlag"];
+            if (CaptchaFlag == "true")
+            {
+                BackgroundJob.Schedule(
+                        () => ContestGroupFetchEntryIds(ContestGroupId),
+                        TimeSpan.FromHours(2));
+                return;
+            }
+
             var ContestList = (from e in db.ScrapeStatuses
                                where e.ContestGroupId == ContestGroupId && e.FinalEntryIdScrape == false
                                select e.ContestId).ToList();
@@ -106,12 +116,20 @@ namespace Draftkings.Ownership.Controllers
         }
         public void FetchContestEntryIds(RestRequest LoginRequestTwo, RestClient DkClient, int ContestId, bool manual)
         {
-            string HangfireStatus = System.Configuration.ConfigurationManager.AppSettings["HangfirePauseFlag"];
-            if (HangfireStatus == "true")
+            string AccessDeniedFlag = System.Configuration.ConfigurationManager.AppSettings["AccessDeniedFlag"];
+            if (AccessDeniedFlag == "true")
             {
                 BackgroundJob.Schedule(
-                         () => FetchSingular(ContestId),
-                         TimeSpan.FromDays(1));
+                        () => FetchSingular(ContestId),
+                        TimeSpan.FromDays(1));
+                return;
+            }
+            string CaptchaFlag = System.Configuration.ConfigurationManager.AppSettings["CaptchaFlag"];
+            if (CaptchaFlag == "true")
+            {
+                BackgroundJob.Schedule(
+                        () => FetchSingular(ContestId),
+                        TimeSpan.FromHours(2));
                 return;
             }
 
@@ -139,7 +157,7 @@ namespace Draftkings.Ownership.Controllers
                 BackgroundJob.Schedule(
                         () => FetchSingular(ContestId),
                         TimeSpan.FromDays(1));
-                DisposeHangfire();
+                DisposeHangfire(false);
                 return;
             }
 
@@ -206,12 +224,20 @@ namespace Draftkings.Ownership.Controllers
         [Queue("ownership")]
         public void GetOwnership(int ContestGroupId)
         {
-            string HangfireStatus = System.Configuration.ConfigurationManager.AppSettings["HangfirePauseFlag"];
-            if (HangfireStatus == "true")
+            string AccessDeniedFlag = System.Configuration.ConfigurationManager.AppSettings["AccessDeniedFlag"];
+            if (AccessDeniedFlag == "true")
             {
                 BackgroundJob.Schedule(
                         () => GetOwnership(ContestGroupId),
                         TimeSpan.FromDays(1));
+                return;
+            }
+            string CaptchaFlag = System.Configuration.ConfigurationManager.AppSettings["CaptchaFlag"];
+            if (CaptchaFlag == "true")
+            {
+                BackgroundJob.Schedule(
+                        () => GetOwnership(ContestGroupId),
+                        TimeSpan.FromHours(2));
                 return;
             }
             List<double> IdList = new List<double>();
@@ -232,12 +258,20 @@ namespace Draftkings.Ownership.Controllers
 
             foreach (int ContestId in ContestList)
             {
-                HangfireStatus = System.Configuration.ConfigurationManager.AppSettings["HangfirePauseFlag"];
-                if (HangfireStatus == "true")
+                AccessDeniedFlag = System.Configuration.ConfigurationManager.AppSettings["AccessDeniedFlag"];
+                if (AccessDeniedFlag == "true")
                 {
                     BackgroundJob.Schedule(
-                            () => GetContestOwnership(ContestId),
+                            () => GetContestOwnership(ContestGroupId),
                             TimeSpan.FromDays(1));
+                    continue;
+                }
+                CaptchaFlag = System.Configuration.ConfigurationManager.AppSettings["CaptchaFlag"];
+                if (CaptchaFlag == "true")
+                {
+                    BackgroundJob.Schedule(
+                            () => GetContestOwnership(ContestGroupId),
+                            TimeSpan.FromHours(2));
                     continue;
                 }
                 ContestScrapeStatus CurrentContestStatus =
@@ -384,7 +418,7 @@ namespace Draftkings.Ownership.Controllers
                 BackgroundJob.Schedule(
                         () => GetContestOwnership(ContestId),
                         TimeSpan.FromDays(1));
-                DisposeHangfire();
+                DisposeHangfire(false);
                 return;
             }
 
@@ -435,7 +469,7 @@ namespace Draftkings.Ownership.Controllers
             if (NumericStatusCode == 403)
             {
                 SendMail("403 Error", "Tasks put on hold.");
-                DisposeHangfire();
+                DisposeHangfire(false);
                 LoginResponse.ErrorMessage = "403";
                 return LoginResponse;
             }
@@ -453,19 +487,30 @@ namespace Draftkings.Ownership.Controllers
             }
             else if (LoginResponseObject.statusId == 0)
             {
-
-                LoginInfo CurrentLogin = (from e in db.Logins
-                                          where e.Username == LoginInfo
-                                          select e).SingleOrDefault();
-
-                SendMail("Captcha required", "Tasks put on hold.");
-                DisposeHangfire();
-                LoginResponse.ErrorMessage = "Captcha";
+                if (LoginResponseObject.message == "Incorrect captcha response.")
+                {
+                    SendMail("Captcha required", "Tasks put on hold for 2 hours.");
+                    DisposeHangfire(true);
+                    BackgroundJob.Schedule(
+                        () => StartHangfire(true),
+                        TimeSpan.FromHours(2));
+                    LoginResponse.ErrorMessage = "Captcha";
+                }
+                else
+                {
+                    LoginInfo CurrentLogin = (from e in db.Logins
+                                              where e.Username == LoginInfo
+                                              select e).SingleOrDefault();
+                    db.Logins.Remove(CurrentLogin);
+                    db.SaveChanges();
+                    LoginResponse = Login(DkClient);
+                }
             }
 
             return LoginResponse;
 
         }
+        
         public void SendMail(string Title, string Body)
         {
             MailMessage mail = new MailMessage();
@@ -482,9 +527,29 @@ namespace Draftkings.Ownership.Controllers
 
             SmtpServer.Send(mail);
         }
-        public void DisposeHangfire()
+        public void DisposeHangfire(bool Captcha)
         {
-            System.Configuration.ConfigurationManager.AppSettings["HangfirePauseFlag"] = "true"; ;
+            if (Captcha)
+            {
+                System.Configuration.ConfigurationManager.AppSettings["CaptchaFlag"] = "true";
+            }
+            else
+            {
+                System.Configuration.ConfigurationManager.AppSettings["AccessDeniedFlag"] = "true";
+            }
+           
+        }
+        public void StartHangfire(bool Captcha)
+        {
+            if (Captcha)
+            {
+                System.Configuration.ConfigurationManager.AppSettings["CaptchaFlag"] = "false";
+            }
+            else
+            {
+                System.Configuration.ConfigurationManager.AppSettings["CaptchaFlag"] = "false";
+                System.Configuration.ConfigurationManager.AppSettings["AccessDeniedFlag"] = "false";
+            }
         }
     }
 }

@@ -23,12 +23,12 @@ namespace Draftkings.Ownership.Controllers
         public void Index()
         {
             //Normal check to make sure hangfire tasks are not on pause
-            string HangfireStatus = System.Configuration.ConfigurationManager.AppSettings["HangfirePauseFlag"];
-            if (HangfireStatus == "true")
+            string AccessDeniedFlag = System.Configuration.ConfigurationManager.AppSettings["AccessDeniedFlag"];
+            if (AccessDeniedFlag == "true")
             {
                 BackgroundJob.Schedule(
-                        () => Index(),
-                        TimeSpan.FromHours(1));
+                         () => Index(),
+                         TimeSpan.FromHours(1));
                 return;
             }
 
@@ -87,9 +87,7 @@ namespace Draftkings.Ownership.Controllers
 
                     //All times are stored in UTC
                     DateTime CurrentTime = DateTime.UtcNow;
-                    //Giving DK a 3 minute cushion before we send request
-                    //I was hitting a few "contest not started" errors if I sent immediately.
-                    CurrentTime.AddMinutes(-3);
+                    
                     //Scrape for ownership three hours after the last game starts.
                     DateTime ScrapeTime = NewContestGroup.LastGameStart.AddMinutes(-180);
 
@@ -97,17 +95,26 @@ namespace Draftkings.Ownership.Controllers
                     TimeSpan SpanUntilEnd = NewContestGroup.LastGameStart.Subtract(CurrentTime);
                     TimeSpan SpanUntilScrape = NewContestGroup.LastGameStart.Subtract(ScrapeTime);
 
+                    double SpanUntilStartDouble = SpanUntilStart.TotalMinutes;
+                    double SpanUntilEndDouble = SpanUntilEnd.TotalMinutes;
+                    double SpanUntilScrapeDouble = SpanUntilScrape.TotalMinutes;
+
+                    //Giving DK a 3 minute cushion before we send request
+                    //I was hitting a few "contest not started" errors if I sent immediately.
+                    SpanUntilStartDouble += 3;
+                    SpanUntilEndDouble += 3;
+
                     BackgroundJob.Enqueue(
                         () => SelectContests(ContestGroupElement.DraftGroupId, ContestGroupElement.Sport, true));
                     BackgroundJob.Schedule(
                         () => ContestScrapeControllerInstance.ContestGroupFetchEntryIds(ContestGroupElement.DraftGroupId),
-                        TimeSpan.FromMinutes(SpanUntilStart.TotalMinutes));
+                        TimeSpan.FromMinutes(SpanUntilStartDouble));
                     BackgroundJob.Schedule(
                         () => ContestScrapeControllerInstance.ContestGroupFetchEntryIds(ContestGroupElement.DraftGroupId),
-                        TimeSpan.FromMinutes(SpanUntilEnd.TotalMinutes));
+                        TimeSpan.FromMinutes(SpanUntilEndDouble));
                     BackgroundJob.Schedule(
                         () => ContestScrapeControllerInstance.GetOwnership(ContestGroupElement.DraftGroupId),
-                        TimeSpan.FromMinutes(SpanUntilScrape.TotalMinutes));
+                        TimeSpan.FromMinutes(SpanUntilScrapeDouble));
                 }
                 else
                 {
@@ -214,7 +221,7 @@ namespace Draftkings.Ownership.Controllers
                     {
                         Contest NewContest = new Contest();
                         NewContest.ContestId = ContestElement.id;
-                        NewContest.DraftGroupId = DraftGroupId; // ContestElement.dg;
+                        NewContest.DraftGroupId = ContestElement.dg; // DraftGroupId
                         NewContest.ContestGroupId = ContestElement.dg;
                         NewContest.ContestTitle = ContestElement.n;
                         NewContest.Size = ContestElement.m;
@@ -247,7 +254,7 @@ namespace Draftkings.Ownership.Controllers
                     {
                         ContestScrapeStatus NewContestStatus = new ContestScrapeStatus();
                         NewContestStatus.ContestId = ContestElement.id;
-                        NewContestStatus.ContestGroupId = DraftGroupId; // ContestElement.dg;
+                        NewContestStatus.ContestGroupId = ContestElement.dg;
                         NewContestStatus.InitialEntryIdScrape = false;
                         NewContestStatus.FinalEntryIdScrape = false;
                         Database.ScrapeStatuses.Add(NewContestStatus);
@@ -382,7 +389,7 @@ namespace Draftkings.Ownership.Controllers
         }
         public void DisposeHangfire()
         {
-            System.Configuration.ConfigurationManager.AppSettings["HangfirePauseFlag"] = "true"; ;
+            System.Configuration.ConfigurationManager.AppSettings["AccessDeniedFlag"] = "true"; ;
         }
     }
 }

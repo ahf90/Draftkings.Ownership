@@ -44,6 +44,15 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="AutomatedTester.BrowserMob">
+      <HintPath>..\..\..\..\..\Desktop\AutomatedTester.BrowserMob\AutomatedTester.BrowserMob.dll</HintPath>
+    </Reference>
+    <Reference Include="DeathByCaptcha">
+      <HintPath>..\..\..\..\DeathByCaptcha.dll</HintPath>
+    </Reference>
+    <Reference Include="FiddlerCore">
+      <HintPath>..\..\..\..\..\Desktop\FiddlerCoreAPI\FiddlerCore.dll</HintPath>
+    </Reference>
     <Reference Include="Hangfire.Core, Version=1.5.7.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Hangfire.Core.1.5.7\lib\net45\Hangfire.Core.dll</HintPath>
       <Private>True</Private>
@@ -113,6 +122,10 @@
     <Reference Include="System.Web.WebPages.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <Private>True</Private>
       <HintPath>..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.Razor.dll</HintPath>
+    </Reference>
+    <Reference Include="WebDriver, Version=2.53.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Selenium.WebDriver.2.53.1\lib\net40\WebDriver.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="WebGrease">
       <Private>True</Private>
@@ -267,6 +280,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
+    <Folder Include="Views\Fiddler\" />
     <Folder Include="Views\Hangfire\" />
   </ItemGroup>
   <ItemGroup>
