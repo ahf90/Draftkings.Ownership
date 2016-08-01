@@ -4,11 +4,16 @@
     ViewBag.Title = "Selected Contests to Scrape";
 }
 
-<h2>View</h2>
+<h2>@ViewContext.RouteData.Values["id"]</h2>
 
 <p>
-    @Html.ActionLink("Create New", "Create")
+    @Html.ActionLink("Create New", "Create") |  
+    @Html.ActionLink("Rerun Contest Selection", "MCS", "Manual", new { id=@ViewContext.RouteData.Values["id"] }, null) | 
+    @Html.ActionLink("Fetch Entries", "GF", "Manual", new { id=@ViewContext.RouteData.Values["id"] }, null) | 
+    @Html.ActionLink("Fetch Ownership", "GO", "Manual", new { id=@ViewContext.RouteData.Values["id"] }, null) | 
+    @Html.ActionLink("All Three", "All", "Manual", new { id=@ViewContext.RouteData.Values["id"] }, null) | 
 </p>
+
 <table class="table">
     <tr>
         <th>

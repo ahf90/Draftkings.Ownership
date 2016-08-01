@@ -87,17 +87,15 @@ namespace Draftkings.Ownership.Controllers
 
                     //All times are stored in UTC
                     DateTime CurrentTime = DateTime.UtcNow;
-                    
-                    //Scrape for ownership three hours after the last game starts.
-                    DateTime ScrapeTime = NewContestGroup.LastGameStart.AddMinutes(-180);
 
                     TimeSpan SpanUntilStart = NewContestGroup.ContestStartDate.Subtract(CurrentTime);
                     TimeSpan SpanUntilEnd = NewContestGroup.LastGameStart.Subtract(CurrentTime);
-                    TimeSpan SpanUntilScrape = NewContestGroup.LastGameStart.Subtract(ScrapeTime);
 
                     double SpanUntilStartDouble = SpanUntilStart.TotalMinutes;
                     double SpanUntilEndDouble = SpanUntilEnd.TotalMinutes;
-                    double SpanUntilScrapeDouble = SpanUntilScrape.TotalMinutes;
+
+                    //Scrape for ownership 250 minutes after the last game starts.
+                    double SpanUntilOwnershipScrapeDouble = SpanUntilEnd.TotalMinutes + 250.0;
 
                     //Giving DK a 3 minute cushion before we send request
                     //I was hitting a few "contest not started" errors if I sent immediately.
@@ -114,7 +112,7 @@ namespace Draftkings.Ownership.Controllers
                         TimeSpan.FromMinutes(SpanUntilEndDouble));
                     BackgroundJob.Schedule(
                         () => ContestScrapeControllerInstance.GetOwnership(ContestGroupElement.DraftGroupId),
-                        TimeSpan.FromMinutes(SpanUntilScrapeDouble));
+                        TimeSpan.FromMinutes(SpanUntilOwnershipScrapeDouble));
                 }
                 else
                 {
@@ -219,6 +217,104 @@ namespace Draftkings.Ownership.Controllers
                     ContestExists = Database.Contests.Any(cont => cont.ContestId == ContestElement.id);
                     if (ContestExists == false && ContestElement.attr.IsGuaranteed == "true")
                     {
+                        string ContestType = "";
+                        if (ContestElement.attr.GetType().GetProperty("IsQualifier") != null)
+                        {
+                            //If so, check to make sure the atrribute is set to true
+                            if (ContestElement.attr.IsQualifier == "true")
+                            {
+                                if (ContestElement.n.IndexOf("Satellite") != -1 || ContestElement.n.IndexOf("SUPERSat") != -1)
+                                {
+                                    ContestType = "Satellite";
+                                }
+                                else if (ContestElement.n.IndexOf("Qualifier") != -1)
+                                {
+                                    ContestType = "Qualifier";
+                                }
+                                else
+                                {
+                                    ContestType = "Satellite";
+		                        }
+                            }
+                        }
+                        else if (ContestElement.attr.GetType().GetProperty("IsDoubleUp") != null && ContestElement.attr.GetType().GetProperty("IsFiftyfifty") != null)
+                        {
+                            if (ContestElement.attr.IsDoubleUp == "true" && ContestElement.attr.IsFiftyfifty == "true")
+                            {
+                                if (ContestElement.n.IndexOf("Double Up") != -1)
+                                {
+                                    ContestType = "Double Up";
+                                }
+                                else if (ContestElement.n.IndexOf("50/50") != -1)
+                                {
+                                    ContestType = "Fifty-Fifty";
+                                }
+                                else
+                                {
+                                    ContestType = "Unknown";
+                                }
+                            }
+                            else if (ContestElement.attr.IsDoubleUp == "true")
+                            {
+                                ContestType = "Double Up";
+                            }
+                            else if (ContestElement.attr.IsFiftyfifty == "true")
+                            {
+                                ContestType = "Fifty-Fifty";
+                            }
+                            else
+                            {
+                                ContestType = "Unknown";
+                            }
+                        }
+                        else if (ContestElement.attr.GetType().GetProperty("IsFiftyfifty") != null)
+                        {
+                            if (ContestElement.attr.IsFiftyfifty == "true")
+                            {
+                                ContestType = "Fifty-Fifty";
+                            }
+                            else
+                            {
+                                ContestType = "Unknown";
+                            }
+                        }
+                        else if (ContestElement.attr.GetType().GetProperty("IsDoubleUp") != null)
+                        {
+                            if (ContestElement.attr.IsDoubleUp == "true")
+                            {
+                                ContestType = "Double Up";
+                            }
+                            else
+                            {
+                                ContestType = "Unknown";
+                            }
+                        }
+                        else if (ContestElement.attr.GetType().GetProperty("Multiplier") != null)
+                        {
+                            if (ContestElement.attr.Multiplier == "true")
+                            {
+                                ContestType = "Multiplier";
+                            }
+                            else
+                            {
+                                ContestType = "Unknown";
+                            }
+                        }
+                        else if (ContestElement.attr.GetType().GetProperty("League") != null)
+                        {
+                            if (ContestElement.attr.League == "true")
+                            {
+                                ContestType = "League";
+                            }
+                            else
+                            {
+                                ContestType = "Unknown";
+                            }
+                        }
+                        else
+                        {
+                            ContestType = "Tournament";
+                        }
                         Contest NewContest = new Contest();
                         NewContest.ContestId = ContestElement.id;
                         NewContest.DraftGroupId = ContestElement.dg; // DraftGroupId
@@ -227,7 +323,16 @@ namespace Draftkings.Ownership.Controllers
                         NewContest.Size = ContestElement.m;
                         NewContest.MultiEntry = ContestElement.mec;
                         NewContest.EntryFee = ContestElement.a;
+                        NewContest.ContestType = ContestType;
                         Database.Contests.Add(NewContest);
+                        Database.SaveChanges();
+
+                        Prizes NewPrize = new Prizes();
+                        NewPrize.ContestId = ContestElement.id;
+                        NewPrize.TotalPrizes = ContestElement.po; // DraftGroupId
+                        //NewPrize.Summary = ContestElement.dg;
+                       // NewPrize.WinnerCount = ContestElement.n;
+                        Database.Prize.Add(NewPrize);
                         Database.SaveChanges();
                     }
                 }

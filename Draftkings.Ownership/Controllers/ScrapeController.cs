@@ -243,7 +243,7 @@ namespace Draftkings.Ownership.Controllers
             List<double> IdList = new List<double>();
 
             var ContestList = (from e in db.ScrapeStatuses
-                               where e.ContestGroupId == ContestGroupId && e.FinalEntryIdScrape == true
+                               where e.ContestGroupId == ContestGroupId && e.FinalEntryIdScrape == true && e.IsOwnershipCollected == false
                                select e.ContestId).ToList();
 
             var DkClient = new RestClient("https://www.draftkings.com");
@@ -303,6 +303,7 @@ namespace Draftkings.Ownership.Controllers
                 CurrentContestStatus.IsOwnershipCollected = true;
                 db.SaveChanges();
             }
+            Thread.Sleep(60000);
         }
         [Queue("ownership")]
         public void GetContestOwnership(int ContestId)

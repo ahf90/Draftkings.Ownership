@@ -14,6 +14,8 @@ namespace Draftkings.Ownership.Models
         public string IsFiftyfifty { get; set; }
         public string IsHeadliner { get; set; }
         public string IsBeginner { get; set; }
+        public string Multiplier { get; set; }
+        public string League { get; set; }
     }
 
     public class Pd
