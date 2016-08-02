@@ -11,6 +11,7 @@ using System.Linq;
 using RestSharp;
 using Hangfire;
 using System.Net.Mail;
+using HtmlAgilityPack;
 
 namespace Draftkings.Ownership.Controllers
 {
@@ -357,6 +358,8 @@ namespace Draftkings.Ownership.Controllers
                 {
                     if (Array.IndexOf(SelectedTournaments, ContestElement.id) != -1)
                     {
+                        GetContestPrize(ContestElement.id);
+
                         ContestScrapeStatus NewContestStatus = new ContestScrapeStatus();
                         NewContestStatus.ContestId = ContestElement.id;
                         NewContestStatus.ContestGroupId = ContestElement.dg;
@@ -371,6 +374,47 @@ namespace Draftkings.Ownership.Controllers
             }
 
             Thread.Sleep(10000);
+        }
+        public void GetContestPrize(int ContestId)
+        {
+            int FinalPaymentPlace;
+            string ContestIdString = ContestId.ToString();
+
+            // Query the database for the row to be updated.
+            Prizes ContestPrize =
+                (from prize in Database.Prize
+                where prize.ContestId == ContestId
+                select prize).SingleOrDefault();
+
+            HtmlWeb WebHtml = new HtmlWeb();
+            HtmlDocument DocumentHtml = WebHtml.Load("https://www.draftkings.com/contest/detailspop?contestId=" + ContestIdString);
+            HtmlNode[] TrNodes = DocumentHtml.DocumentNode.SelectNodes("//div[@class='dk-black-rounded-panel prize-payouts']//tr").ToArray();
+            HtmlNode FinalTrNode = TrNodes[TrNodes.Length - 1];
+           //HtmlNode FinalTdNode = FinalTrNode.LastChild.S.Last();
+           //string FinalPaymentString = FinalTdNode.InnerHtml;
+            string FinalPaymentString = FinalTrNode.ChildNodes[1].InnerHtml;
+            Regex CharRegex = new Regex("[^0-9 -]");
+            FinalPaymentString = CharRegex.Replace(FinalPaymentString, "");
+            string[] FinalPaymentSplit = FinalPaymentString.Split('-');
+            if (FinalPaymentSplit.Length > 1)
+            {
+                FinalPaymentPlace = Int32.Parse(FinalPaymentSplit[1]);
+            }
+            else
+            {
+                FinalPaymentPlace = Int32.Parse(FinalPaymentSplit[0]);
+            }
+
+            ContestPrize.WinnerCount = FinalPaymentPlace;
+
+            try
+            {
+                Database.SaveChanges();
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e);
+            }
         }
         [Queue("playercreate")]
         public void CreateContestPlayers(int ContestId)
@@ -494,7 +538,8 @@ namespace Draftkings.Ownership.Controllers
         }
         public void DisposeHangfire()
         {
-            System.Configuration.ConfigurationManager.AppSettings["AccessDeniedFlag"] = "true"; ;
+            System.Configuration.ConfigurationManager.AppSettings["AccessDeniedFlag"] = "true";
         }
+        
     }
 }
